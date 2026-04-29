@@ -27,6 +27,7 @@ using RendererTest = ScMemoryTest;
 void GenerateButtonAction(ScAgentContext & context, std::string const & scsTestFile)
 {
 context.SubscribeAgent<GenerateTemplateAgent>();
+context.SubscribeAgent<JsonToXMLAgent>();
 
   ScsLoader loader;
   loader.loadScsFile(context, TEST_FILES_DIR_PATH + scsTestFile);
@@ -37,19 +38,23 @@ context.SubscribeAgent<GenerateTemplateAgent>();
   ScAction action = context.ConvertToAction(test_action_node);
   action.InitiateAndWait();
 
+  context.UnsubscribeAgent<GenerateTemplateAgent>();
+  context.UnsubscribeAgent<JsonToXMLAgent>();
 
+  SC_LOG_INFO("another point");
   // Check if the result is correct
   ScAddr string_template_expected_result = context.SearchElementBySystemIdentifier("string_template_expected_result");
   std::string string_template_expected_result_content;
   context.GetLinkContent(string_template_expected_result, string_template_expected_result_content);
 
+  SC_LOG_INFO(string_template_expected_result_content);
+
   ScAddr string_result = context.SearchElementBySystemIdentifier("result");
   std::string string_result_content;
   context.GetLinkContent(string_result, string_result_content);
 
+  SC_LOG_INFO(string_result_content);
   EXPECT_EQ(string_template_expected_result_content, string_result_content);
-
-  context.UnsubscribeAgent<GenerateTemplateAgent>();
 }
 
 TEST_F(RendererTest, ButtonActionGenerate)

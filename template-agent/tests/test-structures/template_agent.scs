@@ -17,25 +17,25 @@ button => nrel_system_identifier: [button_id];
 
 tuple_node -> rrel_component_with_input: component_tuple_node;
 		   -> button_action_template;
-		   -> rrel_input_params: @arc_param;;
+		   -> rrel_input_params: input_param_node;; 
+
+input_param_node -> @arc_param;;
 
 
-component_tuple_node -> text_field;;
+component_tuple_node -> rrel_1: text_field;;
+
+@string_result = [{
+					"name": "John",
+					"age": 30,
+					"city": "New York"
+						}];;
+@string_result  => nrel_system_identifier: [result];;
+
 
 text_field <- concept_text_field;
-		   => nrel_value: [{
-							"name": "John",
-							"age": 30,
-							"city": "New York"
-						}];;
+		   => nrel_value: @string_result;;
 
-[{
-							"name": "John",
-							"age": 30,
-							"city": "New York"
-						}]  => nrel_system_identifier: [result];;
 
 test_action_node
 <- action_generate_template;
-<- action_initiated;
 -> rrel_1: [button_id];;

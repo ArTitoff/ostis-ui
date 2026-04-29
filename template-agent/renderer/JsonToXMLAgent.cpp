@@ -27,7 +27,7 @@ ScResult JsonToXMLAgent::DoProgram(ScActionInitiatedEvent const & event, ScActio
 {
 
     auto [link_param] = action.GetArguments<1>();
-
+    SC_LOG_INFO("JsonToXMLAgent started" );
       if (!m_context.IsElement(link_param))
         {
            SC_THROW_EXCEPTION(
@@ -53,7 +53,7 @@ ScResult JsonToXMLAgent::DoProgram(ScActionInitiatedEvent const & event, ScActio
         SC_THROW_EXCEPTION(utils::ExceptionItemNotFound, "JsonToXMLAgent: string template link has no content.");
     }
 
-    SC_LOG_INFO("GenerateTemplateAgent finished " << xml);
+    SC_LOG_INFO("JsonToXMLAgent finished " << xml);
     return action.FinishSuccessfully();
 }
 

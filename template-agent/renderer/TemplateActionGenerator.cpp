@@ -23,34 +23,19 @@ namespace specifiedStringTemplateModule
 {
 
 ScResult GenerateTemplateAgent::DoProgram(ScActionInitiatedEvent const & event, ScAction & action)
-{
-
-    auto [button] = action.GetArguments<1>();
-    SC_LOG_INFO("ЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁЁ " );
-
-      if (!m_context.IsElement(button))
-        {
-           SC_THROW_EXCEPTION(
-            utils::ExceptionItemNotFound, "Button id not found");
-        }
+{    
+    auto [button, but] = action.GetArguments<2>();
+    SC_LOG_INFO("GenerateTemplateAgent started");
     
     std::string button_id;
     m_context.GetLinkContent(button, button_id);
-    ScAddr buttonAddr = m_context.SearchElementBySystemIdentifier(button_id);
+    ScAddr buttonAddr = m_context.SearchElementBySystemIdentifier(button_id); // ищем элемент по полученному идентификатору
 
-        if (!buttonAddr.IsValid())
+    if (!buttonAddr.IsValid())
     {
         SC_THROW_EXCEPTION(utils::ExceptionItemNotFound, "Button node not found: " + button_id);
     }
 
-    // ScAddr const buttonAddr = IteratorUtils::getAnyByInRelation( // берем узел кнопки через айди
-    // &m_context, button, SpecifiedStringTemplateKeynodes::nrel_system_identifier);
-
-    // button =================> idtf 
-    //                 /\
-    //                 |
-    //                 |
-    //                 nrel_system_identifier
 
     ScAddr const variablesSetAddr = IteratorUtils::getAnyByOutRelation( // берем узел связывающий шаблон действия кнопки и параметры
         &m_context, buttonAddr, SpecifiedStringTemplateKeynodes::nrel_action_template);
@@ -63,15 +48,16 @@ ScResult GenerateTemplateAgent::DoProgram(ScActionInitiatedEvent const & event, 
             "nrel_action_template not found for button: " + button_id);
     }
 
-    ScTemplate scTemplate;
-    ScAddr templateAddr;
-    ScTemplateParams params;
+
+    ScTemplate scTemplate;  // переменная для создания и генерации шаблона
+    ScAddr templateAddr;    // узел шаблона в базе знаний
+    ScTemplateParams params; // набор параметров, которые будут подставлены в шаблон
 
     ScIterator3Ptr it3 = m_context.CreateIterator3(
         variablesSetAddr,
         ScType::ConstPermPosArc,
         ScType::ConstNodeStructure);
-  
+
 
     if (it3->Next())
     {
@@ -83,24 +69,45 @@ ScResult GenerateTemplateAgent::DoProgram(ScActionInitiatedEvent const & event, 
         }
     }
 
+
     params = GetScTemplateParamFromTemplateReplacement(m_context, variablesSetAddr);
     
     m_context.BuildTemplate(scTemplate, templateAddr, params);
+
+    SC_LOG_INFO("GenerateTemplate");
+    ScTemplateResultItem result;
+    m_context.GenerateByTemplate(scTemplate, result);  // генерируем шаблон с параметрами
 
     SC_LOG_INFO("GenerateTemplateAgent finished");
     return action.FinishSuccessfully();
 }
 
 
+
+
 ScTemplateParams GenerateTemplateAgent::GetScTemplateParamFromTemplateReplacement(
     ScAgentContext & context,
     ScAddr const & variablesSetAddr)
 {
+    SC_LOG_INFO("Function begin");
     ScAddr const varSetInputParams = IteratorUtils::getAnyByOutRelation(  //получили узел с указанием параметров
-        &context, variablesSetAddr, SpecifiedStringTemplateKeynodes::rrel_input_params);
+        &context, variablesSetAddr, SpecifiedStringTemplateKeynodes::rrel_input_params);    
 
     ScAddr const varSetComponentInputParams = IteratorUtils::getAnyByOutRelation( //получили узел с параметрами
         &context, variablesSetAddr, SpecifiedStringTemplateKeynodes::rrel_component_with_input);
+
+
+
+    if (!varSetInputParams.IsValid())
+    {
+        SC_THROW_EXCEPTION(utils::ExceptionItemNotFound, "varSetInputParams node not found: ");
+    }
+
+        if (!varSetComponentInputParams.IsValid())
+    {
+        SC_THROW_EXCEPTION(utils::ExceptionItemNotFound, "varSetComponentInputParams node not found: ");
+    }
+
 
     ScIterator5Ptr it5_for_param = context.CreateIterator5(
             ScType::VarNode,
@@ -130,22 +137,29 @@ ScTemplateParams GenerateTemplateAgent::GetScTemplateParamFromTemplateReplacemen
             relation_node = it5_for_relation_finding->Get(4); // получили отношение
         }
 
+        if (!context.IsElement(relation_node))
+        {
+        SC_THROW_EXCEPTION(
+            utils::ExceptionItemNotFound, "Relation not found");
+        }
+
         ScIterator5Ptr it5_for_param_value = context.CreateIterator5(  // итератор для поиска значений параметров через полученное отношение
-        varSetComponentInputParams,
-        ScType::ConstPermPosArc,
-        ScType::Unknown,
-        ScType::VarPermPosArc,
-        relation_node);
+                varSetComponentInputParams,
+                ScType::ConstPermPosArc,
+                ScType::Unknown,
+                ScType::ConstPermPosArc,
+                relation_node);
   
-     ScAddr param_node; // для различных параметров
+        ScAddr param_node; // для различных параметров
 
         if (it5_for_param_value->Next())
         {
             param_node = it5_for_param_value->Get(2);
+
             ScAddr const replacementValueLink = IteratorUtils::getAnyByOutRelation(  // получаем значение
             &context, param_node, SpecifiedStringTemplateKeynodes::nrel_value);
 
-
+            
             if (context.IsElement(replacementVariable) && context.IsElement(replacementValueLink))  // подставляем значение
             {
                 params.Add(replacementVariable, replacementValueLink);
@@ -154,12 +168,11 @@ ScTemplateParams GenerateTemplateAgent::GetScTemplateParamFromTemplateReplacemen
                 params.Add(replacementVariable, param_node);
             } 
             else  {
-           SC_THROW_EXCEPTION(
-            utils::ExceptionItemNotFound, "Param not found");
-        }
+            SC_THROW_EXCEPTION(utils::ExceptionItemNotFound, "Param not found");
+            }
         }
     }
-
+    SC_LOG_INFO("Fuction end");
   return params;
 }
 
